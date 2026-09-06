@@ -80,8 +80,11 @@ export default function ScanCamera() {
 
           <View className="items-center pb-10">
             <View className="flex-row items-center justify-between w-full px-10">
-              <Pressable onPress={handlePickFromLibrary} className="w-12 h-12 rounded-full bg-black/40 items-center justify-center">
-                <Text style={{ fontSize: 20 }}>🖼️</Text>
+              <Pressable onPress={handlePickFromLibrary} className="items-center">
+                <View className="w-12 h-12 rounded-full bg-black/40 items-center justify-center">
+                  <Text style={{ fontSize: 20 }}>🖼️</Text>
+                </View>
+                <Text className="text-white text-xs mt-1">Upload</Text>
               </Pressable>
               <Pressable
                 onPress={handleCapture}

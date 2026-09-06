@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,8 +26,11 @@ export default function ScanResults() {
   const { saveScan } = useAuth();
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (!result) router.replace("/(tabs)/home");
+  }, [result]);
+
   if (!result) {
-    router.replace("/(tabs)/home");
     return null;
   }
 

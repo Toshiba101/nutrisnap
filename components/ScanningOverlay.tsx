@@ -10,8 +10,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { colors } from "../lib/theme";
 
-const { width } = Dimensions.get("window");
-const FRAME = width - 48;
+const { width, height } = Dimensions.get("window");
+const FRAME_WIDTH = width - 48;
+// Tall rectangle rather than a small square, so the scan frame visually
+// covers most of the captured photo (a full-screen portrait shot) instead
+// of just a slice of it — a user flagged the previous square-at-the-bottom
+// version as only appearing to "scan" the lower part of the plate.
+const FRAME_HEIGHT = Math.min(height * 0.62, FRAME_WIDTH * 1.35);
 
 // Scan-line loading animation shown over the captured photo while the
 // vision model + USDA lookup run — see Phase 0 research: a scanning
@@ -23,7 +28,7 @@ export default function ScanningOverlay({ label }: { label: string }) {
   useEffect(() => {
     y.value = withRepeat(
       withSequence(
-        withTiming(FRAME - 4, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
+        withTiming(FRAME_HEIGHT - 4, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
         withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.quad) })
       ),
       -1,
@@ -42,14 +47,13 @@ export default function ScanningOverlay({ label }: { label: string }) {
         right: 0,
         bottom: 0,
         alignItems: "center",
-        justifyContent: "flex-end",
-        paddingBottom: 60,
+        justifyContent: "center",
       }}
     >
       <View
         style={{
-          width: FRAME,
-          height: FRAME,
+          width: FRAME_WIDTH,
+          height: FRAME_HEIGHT,
           borderRadius: 24,
           borderWidth: 2,
           borderColor: colors.accent,
