@@ -15,6 +15,13 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -30,22 +37,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = backend.onAuthChange(async (user) => {
       setLoading(true);
-      if (user) {
-        setUid(user.uid);
-        setEmail(user.email);
-        const [p, s] = await Promise.all([
-          backend.getProfile(user.uid),
-          backend.listScans(user.uid),
-        ]);
-        setProfileState(p);
-        setScans(s);
-      } else {
-        setUid(null);
-        setEmail(null);
-        setProfileState(null);
-        setScans([]);
+      try {
+        if (user) {
+          setUid(user.uid);
+          setEmail(user.email);
+          // If Firestore is unreachable or slow, fall back to "no profile"
+          // rather than hanging forever — a stuck `loading: true` here
+          // silently freezes the whole app on the sign-in screen with no
+          // error shown, since RootNav has nothing else to render.
+          const [p, s] = await Promise.all([
+            withTimeout(backend.getProfile(user.uid).catch(() => null), 8000, null),
+            withTimeout(backend.listScans(user.uid).catch(() => []), 8000, []),
+          ]);
+          setProfileState(p);
+          setScans(s);
+        } else {
+          setUid(null);
+          setEmail(null);
+          setProfileState(null);
+          setScans([]);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsub;
   }, []);
