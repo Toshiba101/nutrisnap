@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "nutrisnap",
+    "scheme": ["nutrisnap", "com.mostafa.nutrisnap"],
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0E0E10",
     "newArchEnabled": false,

@@ -27,7 +27,11 @@ export function useGoogleSignIn() {
     {
       clientId: GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || "unconfigured",
       scopes: ["openid", "profile", "email"],
-      redirectUri: AuthSession.makeRedirectUri(),
+      // For an Android-type OAuth client, Google requires the redirect
+      // URI's scheme to be the app's package name (confirmed via Google's
+      // own error detail page: "redirect_uri=nutrisnap://" was rejected
+      // outright as a policy violation) — not our regular deep-link scheme.
+      redirectUri: AuthSession.makeRedirectUri({ scheme: "com.mostafa.nutrisnap" }),
       responseType: AuthSession.ResponseType.IdToken,
       // PKCE (code_challenge/code_challenge_method) is only valid for the
       // authorization_code flow — Google rejects it outright on the
