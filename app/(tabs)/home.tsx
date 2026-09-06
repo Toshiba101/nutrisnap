@@ -64,7 +64,7 @@ export default function Home() {
 
         {profile ? (
           <View className="bg-accentDim/20 rounded-full self-start px-3 py-1 mb-4">
-            <Text className="text-accent text-xs font-semibold">{goalLabels[profile.goal]}</Text>
+            <Text className="text-xs font-semibold" style={{ color: colors.accent }}>{goalLabels[profile.goal]}</Text>
           </View>
         ) : null}
 

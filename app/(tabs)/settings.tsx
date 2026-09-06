@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/AuthContext";
 import { signOutUser, usingLocalDemoMode } from "../../lib/backend";
 import { isUnlocked } from "../../lib/purchases";
-import { goalLabels } from "../../lib/theme";
+import { colors, goalLabels } from "../../lib/theme";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -32,7 +32,7 @@ export default function Settings() {
 
         {usingLocalDemoMode && (
           <View className="bg-surface2 rounded-2xl p-4 mb-6">
-            <Text className="text-accent text-sm font-semibold mb-1">Local demo mode</Text>
+            <Text className="text-sm font-semibold mb-1" style={{ color: colors.accent }}>Local demo mode</Text>
             <Text className="text-muted text-xs leading-5">
               No Firebase project is configured yet, so your account and meals are stored on
               this device only. Add EXPO_PUBLIC_FIREBASE_* env vars to switch to real cloud
@@ -67,7 +67,7 @@ export default function Settings() {
           onPress={() => signOutUser()}
           className="bg-surface rounded-2xl p-4 items-center"
         >
-          <Text className="text-danger font-semibold">Sign Out</Text>
+          <Text className="font-semibold" style={{ color: colors.danger }}>Sign Out</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

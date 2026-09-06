@@ -8,6 +8,7 @@ import { generateRecommendation } from "../../lib/recommendation";
 import { useAuth } from "../../lib/AuthContext";
 import PillButton from "../../components/PillButton";
 import OptionCard from "../../components/OptionCard";
+import { colors } from "../../lib/theme";
 import type { CookingMethod, AddedFat } from "../../lib/theme";
 
 // A typical dinner-plate portion, used only to turn the vision model's
@@ -156,13 +157,17 @@ export default function ScanConfirm() {
                   className="flex-1 bg-surface2 text-text rounded-lg px-3 py-2 mr-2"
                 />
                 <Pressable onPress={commitEdit} className="px-2">
-                  <Text className="text-accent font-bold">✓</Text>
+                  <Text className="font-bold" style={{ color: colors.accent }}>✓</Text>
                 </Pressable>
               </View>
             ) : (
               <View key={item.name + index} className="flex-row justify-between items-center py-1.5">
                 <Pressable onPress={() => startEdit(index)} className="flex-1 flex-row items-center mr-2">
-                  <Text className={item.isAnchor ? "text-accent font-semibold" : "text-text"} numberOfLines={1}>
+                  <Text
+                    className={item.isAnchor ? "font-semibold" : "text-text"}
+                    style={item.isAnchor ? { color: colors.accent } : undefined}
+                    numberOfLines={1}
+                  >
                     {item.isAnchor ? "⭐ " : ""}
                     {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
                   </Text>
@@ -171,7 +176,7 @@ export default function ScanConfirm() {
                 <Text className="text-muted mr-3">{Math.round(item.proportion * 100)}%</Text>
                 {identifiedItems.length > 1 && (
                   <Pressable onPress={() => removeItem(index)}>
-                    <Text className="text-danger">✕</Text>
+                    <Text style={{ color: colors.danger }}>✕</Text>
                   </Pressable>
                 )}
               </View>
@@ -218,7 +223,7 @@ export default function ScanConfirm() {
           ))}
         </View>
 
-        {error ? <Text className="text-danger text-sm mb-4">{error}</Text> : null}
+        {error ? <Text className="text-sm mb-4" style={{ color: colors.danger }}>{error}</Text> : null}
 
         <PillButton label="Calculate Nutrition" loading={loading} onPress={handleSubmit} />
       </ScrollView>

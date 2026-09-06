@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { useGoogleSignIn } from "../lib/useGoogleSignIn";
+import { colors } from "../lib/theme";
 
 export default function GoogleSignInButton() {
   const { isConfigured, loading, error, promptAsync, ready } = useGoogleSignIn();
@@ -27,7 +28,7 @@ export default function GoogleSignInButton() {
           </>
         )}
       </Pressable>
-      {error ? <Text className="text-danger text-xs mt-2 text-center">{error}</Text> : null}
+      {error ? <Text className="text-xs mt-2 text-center" style={{ color: colors.danger }}>{error}</Text> : null}
     </View>
   );
 }

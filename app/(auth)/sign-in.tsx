@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as backend from "../../lib/backend";
 import { useAuth } from "../../lib/AuthContext";
+import { colors } from "../../lib/theme";
 import PillButton from "../../components/PillButton";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 
@@ -55,7 +56,7 @@ export default function SignIn() {
               placeholderTextColor="#5A5A60"
               className="bg-surface text-text rounded-2xl px-4 py-4 mb-2 text-base"
             />
-            {error ? <Text className="text-danger text-sm mb-2">{error}</Text> : null}
+            {error ? <Text className="text-sm mb-2" style={{ color: colors.danger }}>{error}</Text> : null}
 
             <View className="mt-4">
               <PillButton label="Sign In" onPress={handleSignIn} loading={loading} />
@@ -65,7 +66,7 @@ export default function SignIn() {
 
             <View className="flex-row justify-center mt-6">
               <Text className="text-muted">Don't have an account? </Text>
-              <Link href="/(auth)/sign-up" className="text-accent font-semibold">
+              <Link href="/(auth)/sign-up" className="font-semibold" style={{ color: colors.accent }}>
                 Sign up
               </Link>
             </View>

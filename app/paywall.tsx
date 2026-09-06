@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getOfferings, purchase, restorePurchases, type PaywallOffering } from "../lib/purchases";
 import { IS_REVENUECAT_CONFIGURED, FREE_TIER_DAILY_SCANS } from "../lib/config";
+import { colors } from "../lib/theme";
 import PillButton from "../components/PillButton";
 
 const FEATURES = [
@@ -67,7 +68,7 @@ export default function Paywall() {
         <View className="bg-surface rounded-2xl p-5 mb-8">
           {FEATURES.map((f) => (
             <View key={f} className="flex-row items-center py-2">
-              <Text className="text-accent mr-3">✓</Text>
+              <Text className="mr-3" style={{ color: colors.accent }}>✓</Text>
               <Text className="text-text flex-1">{f}</Text>
             </View>
           ))}

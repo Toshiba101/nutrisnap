@@ -74,7 +74,7 @@ export default function ScanResults() {
 
         {recommendation ? (
           <View className="bg-accentDim/25 rounded-2xl p-4 mb-5">
-            <Text className="text-accent font-semibold mb-1">💡 Insight</Text>
+            <Text className="font-semibold mb-1" style={{ color: colors.accent }}>💡 Insight</Text>
             <Text className="text-text text-sm leading-5">{recommendation}</Text>
           </View>
         ) : null}

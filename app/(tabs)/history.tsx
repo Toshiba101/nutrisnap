@@ -8,6 +8,7 @@ import { computeStreak } from "../../lib/streak";
 import WeeklyBarChart from "../../components/WeeklyBarChart";
 import MealCard from "../../components/MealCard";
 import { isUnlocked } from "../../lib/purchases";
+import { colors } from "../../lib/theme";
 import { useEffect, useState } from "react";
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -72,7 +73,7 @@ export default function History() {
             <Text className="text-muted text-sm flex-1 mr-3">
               Unlock extended micronutrient trends and unlimited history with NutriSnap Unlimited.
             </Text>
-            <Text className="text-accent font-semibold" onPress={() => router.push("/paywall")}>
+            <Text className="font-semibold" style={{ color: colors.accent }} onPress={() => router.push("/paywall")}>
               Upgrade
             </Text>
           </View>
