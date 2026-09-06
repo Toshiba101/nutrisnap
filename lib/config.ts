@@ -24,8 +24,15 @@ export const IS_FIREBASE_CONFIGURED = Boolean(
   FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId
 );
 
+// Google rejects the OAuth flow outright ("doesn't comply with Google's
+// OAuth 2.0 policy... Error 400: invalid_request") when a Web-type client
+// ID is used from what it detects as a native app context — confirmed
+// live. An Android-type client (package name + signing certificate
+// fingerprint registered in Firebase) is what Google actually expects for
+// this exact browser-based sign-in flow from a real Android app.
+export const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-export const IS_GOOGLE_SIGN_IN_CONFIGURED = Boolean(GOOGLE_WEB_CLIENT_ID);
+export const IS_GOOGLE_SIGN_IN_CONFIGURED = Boolean(GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
 
 export const REVENUECAT_API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
 export const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;

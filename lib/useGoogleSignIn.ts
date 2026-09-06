@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { GOOGLE_WEB_CLIENT_ID, IS_GOOGLE_SIGN_IN_CONFIGURED } from "./config";
+import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, IS_GOOGLE_SIGN_IN_CONFIGURED } from "./config";
 import * as backend from "./backend";
 import { useAuth } from "./AuthContext";
 
@@ -25,7 +25,7 @@ export function useGoogleSignIn() {
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
-      clientId: GOOGLE_WEB_CLIENT_ID || "unconfigured",
+      clientId: GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || "unconfigured",
       scopes: ["openid", "profile", "email"],
       redirectUri: AuthSession.makeRedirectUri(),
       responseType: AuthSession.ResponseType.IdToken,
