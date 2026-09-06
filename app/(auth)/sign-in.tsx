@@ -1,0 +1,74 @@
+import React, { useState } from "react";
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Link } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as backend from "../../lib/backend";
+import PillButton from "../../components/PillButton";
+import GoogleSignInButton from "../../components/GoogleSignInButton";
+
+export default function SignIn() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSignIn() {
+    setError(null);
+    setLoading(true);
+    try {
+      await backend.signIn(email.trim(), password);
+    } catch (e: any) {
+      setError(e?.message ?? "Could not sign in.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <View className="flex-1 px-6 justify-center">
+            <Text className="text-4xl mb-1">🥗</Text>
+            <Text className="text-text text-3xl font-bold mb-1">Welcome back</Text>
+            <Text className="text-muted text-base mb-8">Sign in to keep tracking your meals.</Text>
+
+            <Text className="text-muted text-sm mb-2 ml-1">Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="you@example.com"
+              placeholderTextColor="#5A5A60"
+              className="bg-surface text-text rounded-2xl px-4 py-4 mb-4 text-base"
+            />
+            <Text className="text-muted text-sm mb-2 ml-1">Password</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+              placeholderTextColor="#5A5A60"
+              className="bg-surface text-text rounded-2xl px-4 py-4 mb-2 text-base"
+            />
+            {error ? <Text className="text-danger text-sm mb-2">{error}</Text> : null}
+
+            <View className="mt-4">
+              <PillButton label="Sign In" onPress={handleSignIn} loading={loading} />
+            </View>
+
+            <GoogleSignInButton />
+
+            <View className="flex-row justify-center mt-6">
+              <Text className="text-muted">Don't have an account? </Text>
+              <Link href="/(auth)/sign-up" className="text-accent font-semibold">
+                Sign up
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}

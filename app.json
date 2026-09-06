@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "NutriSnap",
+    "slug": "nutrisnap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "nutrisnap",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E0E10",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mostafa.nutrisnap",
+      "infoPlist": {
+        "NSCameraUsageDescription": "NutriSnap needs your camera to scan your plate and identify food.",
+        "NSPhotoLibraryUsageDescription": "NutriSnap needs photo library access so you can pick an existing photo of your meal."
+      }
+    },
+    "android": {
+      "package": "com.mostafa.nutrisnap",
+      "adaptiveIcon": {
+        "backgroundColor": "#0E0E10",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "NutriSnap needs your camera to scan your plate and identify food."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "NutriSnap needs photo library access so you can pick an existing photo of your meal."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "91364d0b-fde4-4aa8-a57e-4444ac016493"
+      }
+    },
+    "owner": "mostafaradwan"
+  }
+}

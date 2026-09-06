@@ -1,0 +1,54 @@
+// Google Sign-In via expo-auth-session's generic OAuth flow (works inside
+// Expo Go — no native module/config-plugin rebuild needed, unlike
+// @react-native-google-signin/google-signin). Requires a Google "Web
+// client ID", which Firebase auto-generates the moment the Google
+// provider is enabled in Authentication > Sign-in method — see that
+// screen's "Web SDK configuration" section.
+import { useEffect, useState } from "react";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import { GOOGLE_WEB_CLIENT_ID, IS_GOOGLE_SIGN_IN_CONFIGURED } from "./config";
+import * as backend from "./backend";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const discovery = {
+  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  tokenEndpoint: "https://oauth2.googleapis.com/token",
+};
+
+export function useGoogleSignIn() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: GOOGLE_WEB_CLIENT_ID || "unconfigured",
+      scopes: ["openid", "profile", "email"],
+      redirectUri: AuthSession.makeRedirectUri(),
+      responseType: AuthSession.ResponseType.IdToken,
+      extraParams: { nonce: Math.random().toString(36).slice(2) },
+    },
+    discovery
+  );
+
+  useEffect(() => {
+    if (response?.type === "success" && response.params.id_token) {
+      setLoading(true);
+      backend
+        .signInWithGoogleIdToken(response.params.id_token)
+        .catch((e: any) => setError(e?.message ?? "Google sign-in failed."))
+        .finally(() => setLoading(false));
+    } else if (response?.type === "error") {
+      setError("Google sign-in was cancelled or failed.");
+    }
+  }, [response]);
+
+  return {
+    isConfigured: IS_GOOGLE_SIGN_IN_CONFIGURED,
+    loading,
+    error,
+    promptAsync: () => promptAsync(),
+    ready: Boolean(request),
+  };
+}
