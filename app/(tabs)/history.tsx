@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../../lib/AuthContext";
 import { computeDailyTargets } from "../../lib/goals";
 import { computeStreak } from "../../lib/streak";
@@ -9,7 +9,7 @@ import WeeklyBarChart from "../../components/WeeklyBarChart";
 import MealCard from "../../components/MealCard";
 import { isUnlocked } from "../../lib/purchases";
 import { colors } from "../../lib/theme";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -18,9 +18,14 @@ export default function History() {
   const { profile, scans } = useAuth();
   const [unlocked, setUnlocked] = useState(true);
 
-  useEffect(() => {
-    isUnlocked().then(setUnlocked);
-  }, [scans.length]);
+  // Re-check on every focus, not just mount/scan-change — otherwise
+  // returning from the paywall after a successful purchase leaves this
+  // screen showing the stale "not unlocked" upsell banner.
+  useFocusEffect(
+    useCallback(() => {
+      isUnlocked().then(setUnlocked);
+    }, [])
+  );
 
   const targets = profile ? computeDailyTargets(profile) : { calories: 2000 };
   const streak = computeStreak(scans.map((s) => s.createdAt));

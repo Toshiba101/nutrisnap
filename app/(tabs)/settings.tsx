@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../../lib/AuthContext";
 import { signOutUser, usingLocalDemoMode } from "../../lib/backend";
 import { isUnlocked } from "../../lib/purchases";
@@ -21,9 +21,14 @@ export default function Settings() {
   const { profile, email } = useAuth();
   const [unlocked, setUnlocked] = useState(false);
 
-  useEffect(() => {
-    isUnlocked().then(setUnlocked);
-  }, []);
+  // Re-check on every focus, not just mount — otherwise returning from the
+  // paywall after a successful purchase leaves this screen showing stale
+  // "not unlocked" state, since the underlying screen never unmounts.
+  useFocusEffect(
+    useCallback(() => {
+      isUnlocked().then(setUnlocked);
+    }, [])
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-bg" edges={["top"]}>
