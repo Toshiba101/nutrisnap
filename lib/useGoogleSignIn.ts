@@ -29,6 +29,11 @@ export function useGoogleSignIn() {
       scopes: ["openid", "profile", "email"],
       redirectUri: AuthSession.makeRedirectUri(),
       responseType: AuthSession.ResponseType.IdToken,
+      // PKCE (code_challenge/code_challenge_method) is only valid for the
+      // authorization_code flow — Google rejects it outright on the
+      // implicit id_token flow used here ("Parameter not allowed for this
+      // message type: code_challenge_method", confirmed live on device).
+      usePKCE: false,
       extraParams: { nonce: Math.random().toString(36).slice(2) },
     },
     discovery
