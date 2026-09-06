@@ -3,10 +3,12 @@ import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } fro
 import { Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as backend from "../../lib/backend";
+import { useAuth } from "../../lib/AuthContext";
 import PillButton from "../../components/PillButton";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 
 export default function SignUp() {
+  const { applyAuthUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,8 @@ export default function SignUp() {
     }
     setLoading(true);
     try {
-      await backend.signUp(email.trim(), password);
+      const user = await backend.signUp(email.trim(), password);
+      await applyAuthUser(user);
     } catch (e: any) {
       setError(e?.message ?? "Could not create account.");
     } finally {

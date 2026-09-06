@@ -8,7 +8,7 @@
     "scheme": "nutrisnap",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0E0E10",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mostafa.nutrisnap",

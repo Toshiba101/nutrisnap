@@ -32,21 +32,40 @@ export function onAuthChange(cb: AuthListener) {
   });
 }
 
-export async function signUp(email: string, password: string) {
-  await createUserWithEmailAndPassword(auth!, email, password);
+function toAuthUser(u: { uid: string; email: string | null }): AuthUser {
+  return { uid: u.uid, email: u.email || "" };
 }
 
-export async function signIn(email: string, password: string) {
-  await signInWithEmailAndPassword(auth!, email, password);
+// Every sign-in/sign-up path returns the resulting user directly, rather
+// than the caller relying solely on the onAuthStateChanged listener to
+// eventually fire. This was added after a real device (a standalone
+// release build, not Expo Go) showed the listener not reliably
+// propagating a fresh sign-in — the login screen just sat there with no
+// error and no navigation. Returning the user lets AuthContext push state
+// immediately as a second, independent path, with the listener kept as a
+// backup for e.g. token refresh / other tabs signing out.
+export async function signUp(email: string, password: string): Promise<AuthUser> {
+  const cred = await createUserWithEmailAndPassword(auth!, email, password);
+  return toAuthUser(cred.user);
+}
+
+export async function signIn(email: string, password: string): Promise<AuthUser> {
+  const cred = await signInWithEmailAndPassword(auth!, email, password);
+  return toAuthUser(cred.user);
 }
 
 export async function signOutUser() {
   await firebaseSignOut(auth!);
 }
 
-export async function signInWithGoogleIdToken(idToken: string) {
+export async function signInWithGoogleIdToken(idToken: string): Promise<AuthUser> {
   const credential = GoogleAuthProvider.credential(idToken);
-  await signInWithCredential(auth!, credential);
+  const cred = await signInWithCredential(auth!, credential);
+  return toAuthUser(cred.user);
+}
+
+export function getCurrentUser(): AuthUser | null {
+  return auth?.currentUser ? toAuthUser(auth.currentUser) : null;
 }
 
 export async function getProfile(uid: string): Promise<UserProfile | null> {

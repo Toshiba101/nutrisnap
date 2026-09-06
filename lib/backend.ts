@@ -13,6 +13,7 @@ export const onAuthChange = impl.onAuthChange;
 export const signUp = impl.signUp;
 export const signIn = impl.signIn;
 export const signInWithGoogleIdToken = impl.signInWithGoogleIdToken;
+export const getCurrentUser = impl.getCurrentUser;
 export const signOutUser = impl.signOutUser;
 export const getProfile = impl.getProfile;
 export const setProfile = impl.setProfile;

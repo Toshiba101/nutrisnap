@@ -53,7 +53,7 @@ function uidFromEmail(email: string) {
   return `local_${email.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string): Promise<AuthUser> {
   const users = await readJSON<Record<string, string>>(KEYS.usersIndex, {});
   const key = email.trim().toLowerCase();
   if (users[key]) throw new Error("An account with this email already exists.");
@@ -62,15 +62,21 @@ export async function signUp(email: string, password: string) {
   currentUser = { uid: uidFromEmail(email), email: key };
   await writeJSON(KEYS.session, currentUser);
   notify();
+  return currentUser;
 }
 
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string): Promise<AuthUser> {
   const users = await readJSON<Record<string, string>>(KEYS.usersIndex, {});
   const key = email.trim().toLowerCase();
   if (users[key] !== password) throw new Error("Incorrect email or password.");
   currentUser = { uid: uidFromEmail(email), email: key };
   await writeJSON(KEYS.session, currentUser);
   notify();
+  return currentUser;
+}
+
+export function getCurrentUser(): AuthUser | null {
+  return currentUser;
 }
 
 export async function signInWithGoogleIdToken(_idToken: string): Promise<never> {

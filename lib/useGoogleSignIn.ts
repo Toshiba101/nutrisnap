@@ -9,6 +9,7 @@ import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { GOOGLE_WEB_CLIENT_ID, IS_GOOGLE_SIGN_IN_CONFIGURED } from "./config";
 import * as backend from "./backend";
+import { useAuth } from "./AuthContext";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -18,6 +19,7 @@ const discovery = {
 };
 
 export function useGoogleSignIn() {
+  const { applyAuthUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,10 +39,11 @@ export function useGoogleSignIn() {
       setLoading(true);
       backend
         .signInWithGoogleIdToken(response.params.id_token)
+        .then((user) => applyAuthUser(user))
         .catch((e: any) => setError(e?.message ?? "Google sign-in failed."))
         .finally(() => setLoading(false));
     } else if (response?.type === "error") {
-      setError("Google sign-in was cancelled or failed.");
+      setError(response.error?.message || response.params?.error_description || "Google sign-in was cancelled or failed.");
     }
   }, [response]);
 

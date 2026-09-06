@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import * as backend from "./backend";
 import type { UserProfile, ScanRecord } from "./types";
 
@@ -11,6 +11,7 @@ interface AuthContextValue {
   refreshScans: () => Promise<void>;
   saveProfile: (p: UserProfile) => Promise<void>;
   saveScan: (s: ScanRecord) => Promise<void>;
+  applyAuthUser: (user: { uid: string; email: string } | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -28,41 +29,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfileState] = useState<UserProfile | null>(null);
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  // Guards against the listener and a manual applyAuthUser() call (see
+  // below) both firing for the same sign-in and doubling up the work —
+  // harmless either way, just wasted requests, but easy to avoid.
+  const lastAppliedUid = useRef<string | null>(null);
 
   const refreshScans = useCallback(async () => {
     if (!uid) return;
     setScans(await backend.listScans(uid));
   }, [uid]);
 
-  useEffect(() => {
-    const unsub = backend.onAuthChange(async (user) => {
-      setLoading(true);
-      try {
-        if (user) {
-          setUid(user.uid);
-          setEmail(user.email);
-          // If Firestore is unreachable or slow, fall back to "no profile"
-          // rather than hanging forever — a stuck `loading: true` here
-          // silently freezes the whole app on the sign-in screen with no
-          // error shown, since RootNav has nothing else to render.
-          const [p, s] = await Promise.all([
-            withTimeout(backend.getProfile(user.uid).catch(() => null), 8000, null),
-            withTimeout(backend.listScans(user.uid).catch(() => []), 8000, []),
-          ]);
-          setProfileState(p);
-          setScans(s);
-        } else {
-          setUid(null);
-          setEmail(null);
-          setProfileState(null);
-          setScans([]);
-        }
-      } finally {
-        setLoading(false);
+  const applyAuthUser = useCallback(async (user: { uid: string; email: string } | null) => {
+    if (user && lastAppliedUid.current === user.uid) return;
+    lastAppliedUid.current = user?.uid ?? null;
+    setLoading(true);
+    try {
+      if (user) {
+        setUid(user.uid);
+        setEmail(user.email);
+        // If Firestore is unreachable or slow, fall back to "no profile"
+        // rather than hanging forever — a stuck `loading: true` here
+        // silently freezes the whole app on the sign-in screen with no
+        // error shown, since RootNav has nothing else to render.
+        const [p, s] = await Promise.all([
+          withTimeout(backend.getProfile(user.uid).catch(() => null), 8000, null),
+          withTimeout(backend.listScans(user.uid).catch(() => []), 8000, []),
+        ]);
+        setProfileState(p);
+        setScans(s);
+      } else {
+        setUid(null);
+        setEmail(null);
+        setProfileState(null);
+        setScans([]);
       }
-    });
-    return unsub;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // The listener is kept as the source of truth for sign-out and token
+    // refresh, but a real device (standalone release build) showed it
+    // doesn't always reliably fire right after a fresh sign-in/sign-up —
+    // the login screen just sat there with no error and no navigation.
+    // Each sign-in/sign-up/Google screen also calls applyAuthUser()
+    // directly with the user it already has from the resolved auth call,
+    // so the app doesn't depend on this listener alone to make progress.
+    const unsub = backend.onAuthChange(applyAuthUser);
+    return unsub;
+  }, [applyAuthUser]);
 
   const saveProfile = useCallback(
     async (p: UserProfile) => {
@@ -84,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ uid, email, profile, scans, loading, refreshScans, saveProfile, saveScan }}
+      value={{ uid, email, profile, scans, loading, refreshScans, saveProfile, saveScan, applyAuthUser }}
     >
       {children}
     </AuthContext.Provider>
