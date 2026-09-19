@@ -77,7 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // directly with the user it already has from the resolved auth call,
     // so the app doesn't depend on this listener alone to make progress.
     const unsub = backend.onAuthChange(applyAuthUser);
-    return unsub;
+
+    // 2026-09-19: confirmed live -- on a standalone build, Firebase's
+    // auth-state listener can fail to fire even ONCE on cold app open
+    // (not just "slow to fire after sign-in", the case handled above) --
+    // most likely a stale/corrupted local Firebase Auth persistence
+    // cache on that specific device. Since `loading` starts `true` and
+    // NOTHING else ever flips it, that leaves the app frozen on the
+    // root spinner forever with no error and no way out for the user.
+    // Force progress after a timeout: treat it as "no signed-in user"
+    // so the app falls through to the sign-in screen instead of hanging
+    // indefinitely. If the listener does fire first, this is a no-op.
+    const failsafe = setTimeout(() => {
+      setLoading((current) => (current ? false : current));
+    }, 10000);
+
+    return () => {
+      unsub();
+      clearTimeout(failsafe);
+    };
   }, [applyAuthUser]);
 
   const saveProfile = useCallback(
