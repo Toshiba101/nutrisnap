@@ -1,4 +1,22 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+// 2026-09-22, root cause of the app hanging/looping on cold open on every
+// real installed build so far, confirmed by reading node_modules directly:
+// the "firebase" wrapper package's own exports map for "./auth" has NO
+// "react-native" condition (only node/browser/default), so Metro always
+// resolved this to the plain browser ESM build -- which does not export
+// getReactNativePersistence at all (grepped: 0 occurrences). That import
+// silently came back `undefined`, and calling `undefined(AsyncStorage)`
+// threw synchronously while this module (lib/firebase.ts) was still being
+// evaluated -- before AuthProvider, RootNav, or any spinner ever mounted.
+// No amount of fixing AuthContext's loading state could ever have helped,
+// since the crash happened before any of that code ran. The underlying
+// "@firebase/auth" package (not the "firebase" wrapper) DOES declare a
+// proper "react-native" export condition pointing at a real RN build that
+// has every one of these functions (confirmed by grepping its dist file),
+// so importing directly from "@firebase/auth" instead of "firebase/auth"
+// is the fix.
+// @ts-ignore — @firebase/auth's RN build has correct runtime exports but
+// its own public type defs don't perfectly match this import shape.
 import {
   initializeAuth,
   onAuthStateChanged,
@@ -7,11 +25,9 @@ import {
   signInWithCredential,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  getReactNativePersistence,
   type User,
-} from "firebase/auth";
-// @ts-ignore — getReactNativePersistence ships in the RN build of firebase/auth
-// (Metro resolves it correctly) but is missing from the public web type defs.
-import { getReactNativePersistence } from "firebase/auth";
+} from "@firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FIREBASE_CONFIG, IS_FIREBASE_CONFIGURED } from "./config";
