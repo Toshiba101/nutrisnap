@@ -35,13 +35,31 @@ import { FIREBASE_CONFIG, IS_FIREBASE_CONFIGURED } from "./config";
 let app: FirebaseApp | null = null;
 let auth: ReturnType<typeof initializeAuth> | null = null;
 let db: ReturnType<typeof getFirestore> | null = null;
-
+// 2026-09-26: this whole block used to run unguarded at module-eval time --
+// exactly the shape of bug that already bricked cold-open once before
+// (getReactNativePersistence resolving to undefined and being called
+// directly). That specific cause is fixed now (verified against a real
+// Metro bundle, not just Node), but ANY future exception here — a bad
+// env var, a Firebase SDK version mismatch, anything — would silently
+// crash the whole app the same way, before any error boundary or loading
+// screen ever mounts. Wrapping it means the app falls through to
+// IS_FIREBASE_CONFIGURED-style "unconfigured" behavior instead of a
+// blank frozen screen, and the actual error is at least logged.
+export let firebaseInitError: string | null = null;
 if (IS_FIREBASE_CONFIGURED) {
-  app = getApps().length ? getApps()[0]! : initializeApp(FIREBASE_CONFIG);
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-  db = getFirestore(app);
+  try {
+    app = getApps().length ? getApps()[0]! : initializeApp(FIREBASE_CONFIG);
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+    db = getFirestore(app);
+  } catch (e: any) {
+    firebaseInitError = `Firebase init failed: ${e?.message || String(e)}`;
+    console.error(firebaseInitError, e);
+    app = null;
+    auth = null;
+    db = null;
+  }
 }
 
 export { auth, db };
