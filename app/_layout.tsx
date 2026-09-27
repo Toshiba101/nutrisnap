@@ -97,12 +97,38 @@ function RootNav() {
     // stays in the dep list purely so this retries if it does change.
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
+    // 2026-09-27 — THE actual cold-start hang, found from an on-device
+    // state readout showing `load:N nav:Y uid:Y prof:Y at:(root)`.
+    //
+    // app/index.tsx is only a placeholder spinner that expects this
+    // effect to redirect away from it immediately. The signed-out and
+    // no-profile branches below say "redirect unless you're already
+    // where you belong", so they both fire correctly from root. The
+    // signed-in branch instead used an allowlist of origins -- auth or
+    // onboarding -- and root was simply not in it. So a user who is
+    // signed in AND has a profile, landing on root (i.e. every single
+    // cold start with a cached session), matched no branch at all and
+    // sat on the placeholder spinner forever.
+    //
+    // That is also exactly why clearing app data "fixed" it: it wipes
+    // the cached credential, so uid is null, so the signed-out branch
+    // fires and the app moves. Sign in again and the next cold start
+    // hangs again.
+    // Cast because expo-router's generated Segments type only enumerates
+    // the known route groups and never models the empty (root) case --
+    // but root is genuinely reachable at runtime, which is the entire
+    // bug being fixed here: the on-device readout printed `at:(root)`,
+    // which it only prints when segments is [].
+    const atRoot = (segments as string[]).length === 0;
 
     if (!uid && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
     } else if (uid && !profile && !inOnboarding) {
       router.replace("/onboarding/name");
-    } else if (uid && profile && (inAuthGroup || inOnboarding)) {
+    } else if (uid && profile && (inAuthGroup || inOnboarding || atRoot)) {
+      // `atRoot` is the fix. Kept as an explicit origin list rather than
+      // a blanket "not in tabs" so that scan/ and paywall/ -- which are
+      // legitimate top-level destinations -- are never yanked to home.
       router.replace("/(tabs)/home");
     }
   }, [uid, profile, loading, segments, navReady]);
