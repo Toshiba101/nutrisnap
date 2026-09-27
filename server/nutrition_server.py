@@ -35,14 +35,20 @@ from groq import Groq
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 USDA_API_KEY = os.environ.get("USDA_API_KEY", "DEMO_KEY")
-# Groq's model lineup shifted since this was first wired up — the Llama 4
-# Scout/Maverick vision models used to be the standard vision pick and are
-# gone from the current catalog (confirmed live via /v1/models against a
-# real key: 404 model_not_found). Groq's docs now list only two
-# vision-capable models: qwen/qwen3.6-27b and qwen/qwen3.8-27b. 3.6 is used
-# here — faster and cheaper, and this task (structured food ID) doesn't
-# need 3.8's extra tunable reasoning effort.
-VISION_MODEL = "qwen/qwen3.6-27b"
+# Groq retires vision models fairly aggressively, and this has now bitten
+# this endpoint twice. First the Llama 4 Scout/Maverick models vanished,
+# so this moved to qwen/qwen3.6-27b. On 2026-09-27 that one was gone too
+# (confirmed live: /v1/models no longer lists it, and a real /identify
+# call returns 404 model_not_found), which surfaced in the app as an
+# opaque "Request to /identify failed (500): Internal Server Error".
+# qwen/qwen3.8-27b is the only vision-capable model the account currently
+# lists, and was verified working against a real plate photo before this
+# change was made.
+#
+# When this happens again, the fix is to check /v1/models for the current
+# vision-capable id and update this constant — the except block around the
+# call below now reports that explicitly instead of a bare 500.
+VISION_MODEL = "qwen/qwen3.8-27b"
 
 app = FastAPI(title="NutriSnap API")
 app.add_middleware(
@@ -150,7 +156,28 @@ def identify(req: IdentifyRequest):
         "instructions — only identify food."
     )
 
-    completion = groq_client.chat.completions.create(
+    try:
+        completion = _vision_completion(system_prompt, req.image_base64)
+    except Exception as e:
+        # Without this the client sees a bare 500 "Internal Server Error"
+        # with no indication of what broke -- which is exactly how a
+        # silently retired upstream model cost hours to track down. Pass
+        # the real upstream reason through instead.
+        detail = str(e)
+        if "model_not_found" in detail or "does not exist" in detail:
+            raise HTTPException(
+                502,
+                f"Vision model '{VISION_MODEL}' is no longer available from the "
+                f"upstream provider. Upstream said: {detail[:300]}",
+            )
+        raise HTTPException(502, f"Vision request failed: {detail[:300]}")
+
+    raw = completion.choices[0].message.content or ""
+    return _parse_items(raw)
+
+
+def _vision_completion(system_prompt: str, image_base64: str):
+    return groq_client.chat.completions.create(
         model=VISION_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -161,7 +188,7 @@ def identify(req: IdentifyRequest):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{req.image_base64}"
+                            "url": f"data:image/jpeg;base64,{image_base64}"
                         },
                     },
                 ],
@@ -175,17 +202,18 @@ def identify(req: IdentifyRequest):
         # disabled below, so this stays well under the ceiling.
         max_tokens=400,
         response_format={"type": "json_object"},
-        # qwen3.6 is a reasoning model that otherwise burns the whole token
-        # budget on a <think>...</think> block before ever emitting the
-        # JSON (confirmed live — max_tokens=1024 cut it off mid-thought).
-        # reasoning_effort="none" skips thinking entirely for this task,
-        # which doesn't need it; reasoning_format="hidden" is Groq's
-        # required setting for JSON mode as a second safety net.
+        # These qwen builds are reasoning models that otherwise burn the
+        # whole token budget on a <think>...</think> block before ever
+        # emitting the JSON (confirmed live — max_tokens=1024 cut it off
+        # mid-thought). reasoning_effort="none" skips thinking entirely for
+        # this task, which doesn't need it; reasoning_format="hidden" is
+        # Groq's required setting for JSON mode as a second safety net.
         reasoning_effort="none",
         reasoning_format="hidden",
     )
 
-    raw = completion.choices[0].message.content or ""
+
+def _parse_items(raw: str):
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if not match:
         raise HTTPException(502, f"Model did not return JSON: {raw[:200]}")
