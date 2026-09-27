@@ -1,5 +1,5 @@
 import "../global.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StatusBar } from "react-native";
 import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -57,14 +57,6 @@ function RootNav() {
   // See the redirect effect below for why this matters.
   const navState = useRootNavigationState();
   const navReady = !!navState?.key;
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!loading) return;
-    const start = Date.now();
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -164,27 +156,9 @@ function RootNav() {
           }}
         >
           <ActivityIndicator color={colors.accent} size="large" />
-          <Text style={{ color: colors.muted, marginTop: 16, fontSize: 12 }}>
-            Loading account… ({elapsed}s)
-          </Text>
         </View>
       ) : null}
 
-      {/* TEMPORARY (2026-09-27): on-screen state readout so a stuck
-          startup is diagnosable from a single screenshot instead of
-          another blind rebuild. Remove once the cold-start hang is
-          confirmed fixed on a real device. */}
-      <Text
-        style={{
-          position: "absolute",
-          bottom: 6,
-          alignSelf: "center",
-          color: colors.muted,
-          fontSize: 10,
-        }}
-      >
-        {`b6 load:${loading ? "Y" : "N"} nav:${navReady ? "Y" : "N"} uid:${uid ? "Y" : "N"} prof:${profile ? "Y" : "N"} at:${segments.join("/") || "(root)"}`}
-      </Text>
     </View>
   );
 }
