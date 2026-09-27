@@ -89,8 +89,12 @@ function RootNav() {
     // and the redirect lands — the app "works", but only by luck of
     // timing. Gating on navReady (and depending on it, so this re-runs
     // the moment it flips) removes the race in both directions.
-    if (!navReady) return;
-
+    // Deliberately NOT `if (!navReady) return`. Blocking on it is how the
+    // previous attempt turned an intermittent hang into a permanent one:
+    // when the navigator wasn't mounted, navReady never flipped, so the
+    // redirect never ran at all. Now that the Stack is always mounted the
+    // original race is gone, so just attempt the navigation -- navReady
+    // stays in the dep list purely so this retries if it does change.
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
 
@@ -103,29 +107,59 @@ function RootNav() {
     }
   }, [uid, profile, loading, segments, navReady]);
 
-  if (loading) {
-    return (
-      <View className="flex-1 bg-bg items-center justify-center">
-        <ActivityIndicator color={colors.accent} size="large" />
-        {/* Visible status so a stuck screen is diagnosable instead of a
-            silent spinner -- if this counts past ~10s the failsafe timer
-            in AuthContext should have already fired, so seeing this text
-            keep climbing well past that is itself useful evidence. */}
-        <Text style={{ color: colors.muted, marginTop: 16, fontSize: 12 }}>
-          Loading account… ({elapsed}s)
-        </Text>
-      </View>
-    );
-  }
-
+  // 2026-09-27: the navigator is now ALWAYS rendered. It used to be
+  // swapped out for a plain <View> spinner whenever `loading` was true,
+  // which is an expo-router anti-pattern: the root layout must always
+  // render a navigator. While it wasn't rendered the root navigator was
+  // never mounted, so useRootNavigationState() stayed undefined and the
+  // redirect below could never run -- and there was no reliable signal
+  // to re-run it once the navigator did appear. Mounting the Stack
+  // unconditionally and drawing the loading state as an overlay on top
+  // means the navigator is ready from the first frame, so the redirect
+  // fires as soon as auth settles regardless of which resolves first.
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="scan" options={{ presentation: "fullScreenModal" }} />
-      <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="scan" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+      </Stack>
+
+      {loading ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: colors.bg,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator color={colors.accent} size="large" />
+          <Text style={{ color: colors.muted, marginTop: 16, fontSize: 12 }}>
+            Loading account… ({elapsed}s)
+          </Text>
+        </View>
+      ) : null}
+
+      {/* TEMPORARY (2026-09-27): on-screen state readout so a stuck
+          startup is diagnosable from a single screenshot instead of
+          another blind rebuild. Remove once the cold-start hang is
+          confirmed fixed on a real device. */}
+      <Text
+        style={{
+          position: "absolute",
+          bottom: 6,
+          alignSelf: "center",
+          color: colors.muted,
+          fontSize: 10,
+        }}
+      >
+        {`load:${loading ? "Y" : "N"} nav:${navReady ? "Y" : "N"} uid:${uid ? "Y" : "N"} prof:${profile ? "Y" : "N"} at:${segments.join("/") || "(root)"}`}
+      </Text>
+    </View>
   );
 }
 
