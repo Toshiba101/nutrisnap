@@ -1,7 +1,7 @@
 import "../global.css";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StatusBar } from "react-native";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../lib/AuthContext";
@@ -53,6 +53,10 @@ function RootNav() {
   const { uid, profile, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  // 2026-09-27: undefined until the root navigator has actually mounted.
+  // See the redirect effect below for why this matters.
+  const navState = useRootNavigationState();
+  const navReady = !!navState?.key;
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -64,6 +68,29 @@ function RootNav() {
 
   useEffect(() => {
     if (loading) return;
+    // 2026-09-27 — THE cold-start hang, finally root-caused. A
+    // router.replace() issued before the root navigator has mounted is
+    // silently dropped: no error, no throw, nothing for the error
+    // boundary to catch. Because this effect's only other deps are
+    // uid/profile/loading/segments — none of which change again once
+    // auth has settled — it never retried, so the app sat on
+    // app/index.tsx's bare placeholder spinner forever.
+    //
+    // That is exactly the spinner in the bug reports (green on near
+    // black, NO "Loading account…" text — that text only exists on the
+    // loading branch below, which had already been passed).
+    //
+    // It also explains why "clear cache and data" was the only thing
+    // that ever fixed it: with a cached Firebase credential in
+    // AsyncStorage the auth listener resolves almost immediately on cold
+    // open, so this effect fired BEFORE the navigator was ready and the
+    // redirect was thrown away. With app data cleared there is no cached
+    // credential, auth resolves later, the navigator is mounted by then,
+    // and the redirect lands — the app "works", but only by luck of
+    // timing. Gating on navReady (and depending on it, so this re-runs
+    // the moment it flips) removes the race in both directions.
+    if (!navReady) return;
+
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
 
@@ -74,7 +101,7 @@ function RootNav() {
     } else if (uid && profile && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)/home");
     }
-  }, [uid, profile, loading, segments]);
+  }, [uid, profile, loading, segments, navReady]);
 
   if (loading) {
     return (
