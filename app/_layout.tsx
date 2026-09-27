@@ -183,7 +183,7 @@ function RootNav() {
           fontSize: 10,
         }}
       >
-        {`load:${loading ? "Y" : "N"} nav:${navReady ? "Y" : "N"} uid:${uid ? "Y" : "N"} prof:${profile ? "Y" : "N"} at:${segments.join("/") || "(root)"}`}
+        {`b6 load:${loading ? "Y" : "N"} nav:${navReady ? "Y" : "N"} uid:${uid ? "Y" : "N"} prof:${profile ? "Y" : "N"} at:${segments.join("/") || "(root)"}`}
       </Text>
     </View>
   );
